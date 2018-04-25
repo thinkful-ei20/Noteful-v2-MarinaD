@@ -56,5 +56,31 @@ const knex = require('../knex');
 //   .catch (err=> console.log(err));
 
 
-
+// knex.select('id', 'name')
+//   .from('folders')
+//   .then(results => console.log(results))
+//   .catch(err => console.log (err));
   
+// let id = 100;
+// knex('folders')
+//   .select('id', 'name')
+//   .where('folders.id', id)
+//   .then(results => console.log(results))
+//   .catch(err => console.log (err));
+
+
+let newObj = {name : 'THIS IS NEW!'};
+
+knex('folders')
+  .insert(newObj)
+  .returning(['folders.id', 'name'])
+  .then( results => console.log(results))
+  .catch(err => console.log(err));
+
+
+// knex('folders')
+//   .update(updateObj)
+//   .where('folders.id', id)
+//   .returning(['id', 'name'])
+//   .then(results => console.log(results))
+//   .catch(err => console.log (err));
