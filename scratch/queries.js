@@ -69,13 +69,13 @@ const knex = require('../knex');
 //   .catch(err => console.log (err));
 
 
-let newObj = {name : 'THIS IS NEW!'};
+// let newObj = {name : 'THIS IS NEW!'};
 
-knex('folders')
-  .insert(newObj)
-  .returning(['folders.id', 'name'])
-  .then( results => console.log(results))
-  .catch(err => console.log(err));
+// knex('folders')
+//   .insert(newObj)
+//   .returning(['folders.id', 'name'])
+//   .then( results => console.log(results))
+//   .catch(err => console.log(err));
 
 
 // knex('folders')
@@ -84,3 +84,7 @@ knex('folders')
 //   .returning(['id', 'name'])
 //   .then(results => console.log(results))
 //   .catch(err => console.log (err));
+
+knex('tags')
+  .select()
+  .then(results => console.log(results));
