@@ -79,6 +79,7 @@ router.put('/notes/:id', (req, res, next) => {
   /***** Never trust users - validate input *****/
   const updateObj = {};
   const updateableFields = ['title', 'content', 'folder_id'];
+  const updatedTags = (req.body.tags) ? req.body.tags : null;
 
   updateableFields.forEach(field => {
     if (field in req.body) {
@@ -98,14 +99,39 @@ router.put('/notes/:id', (req, res, next) => {
     .update(updateObj) // UPDATE notes SET updateObj WHERE notes.id = id RETURNING id <-- id of the record that was updated
     .where('notes.id',id) //returning avoids having to make an additional SELECT query
     .returning('id')
-    .then(([id]) => {
+    .then(([id])=>{
+      return knex('notes_tags')
+        .where('notes_id', id) 
+        .del()
+        .returning(id);
+
+    })
+    .then(()=> {
+      const tagsToInsert = updatedTags.map(tagId => {
+        return {
+          notes_id : id,
+          tags_id : tagId
+        };
+      });
+      return knex('notes_tags')
+        .insert(tagsToInsert);
+    })
+    .then(() => {
 
       return knex('notes')
-        .select('notes.id', 'title', 'content', 'folder_id', 'folders.name as folder_name') //SELECT
+        .select('notes.id', 'title', 'content', 'folder_id', 'folders.name as folder_name', 'tags.id as tagId', 'tags.name as tagName') //SELECT
         .leftJoin('folders', 'notes.folder_id', 'folders.id')
+        .leftJoin('notes_tags', 'notes.id', 'notes_tags.notes_id')
+        .leftJoin('tags', 'tags.id', 'notes_tags.tags_id')
         .where ({'notes.id': id});
     })
-    .then(item => res.json(item[0]))
+    .then(item => {
+      if (item){
+        const result = hydrate(item);
+        res.json(result);
+      }
+      next();
+    })
     .catch(err => next(err));
 });
 
@@ -165,6 +191,11 @@ router.delete('/notes/:id', (req, res, next) => {
   knex('notes')
     .del()
     .where('notes.id',id)
+    .then( ()=>{
+      knex('notes_tags')
+        .del()
+        .where('notes_id', id);
+    })
     .then(res.sendStatus(204))
     .catch (err=> next(err));
 });

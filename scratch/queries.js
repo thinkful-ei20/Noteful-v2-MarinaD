@@ -85,6 +85,16 @@ const knex = require('../knex');
 //   .then(results => console.log(results))
 //   .catch(err => console.log (err));
 
-knex('tags')
-  .select()
-  .then(results => console.log(results));
+// knex('tags')
+//   .select()
+// //   .then(results => console.log(results));
+
+// let updateObj = {tags_id : 2};
+// knex('notes_tags')
+//   .del()
+//   .where('notes_id', 1001)
+//   .then(
+
+//   )
+
+//   .then(results => console.log(results));
