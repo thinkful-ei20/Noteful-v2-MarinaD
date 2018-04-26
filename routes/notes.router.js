@@ -6,6 +6,7 @@ const knex = require('../knex');
 // Create an router instance (aka "mini-app")
 const router = express.Router();
 
+const hydrate = require('../utils/hydrateNotes');
 // TEMP: Simple In-Memory Database
 // const data = require('../db/notes');
 // const simDB = require('../db/simDB');
@@ -13,12 +14,14 @@ const router = express.Router();
 
 // Get All (and search by query)
 router.get('/notes', (req, res, next) => {
-  const { searchTerm, folderId } = req.query;
+  const { searchTerm, folderId, tagId } = req.query;
 
   knex
-    .select('notes.id', 'title', 'content', 'folders.id as folder_id', 'folders.name as folderName')
+    .select('notes.id', 'title', 'content', 'folders.id as folder_id', 'folders.name as folderName', 'tags.name as tagName', 'tags.id as tagId')
     .from('notes')
     .leftJoin('folders', 'notes.folder_id', 'folders.id')
+    .leftJoin('notes_tags','notes.id', 'notes_tags.notes_id')
+    .leftJoin('tags', 'tags.id', 'notes_tags.tags_id')
     .modify(queryBuilder => {
       if (searchTerm) {
         queryBuilder.where('title', 'like', `%${searchTerm}%`);
@@ -29,9 +32,20 @@ router.get('/notes', (req, res, next) => {
         queryBuilder.where('folder_id', folderId);
       }
     })
+    .modify(queryBuilder =>{
+      if(tagId) {
+        queryBuilder.where('tags.id', tagId);
+      }
+    })
     .orderBy('notes.id')
     .then(list => {
-      res.json(list);
+      if(list) {
+        const result = hydrate(list);
+        res.json(result);
+      }
+      else {
+        next();
+      }
     })
     .catch(err => {
       next(err);
