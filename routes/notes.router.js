@@ -56,15 +56,19 @@ router.get('/notes', (req, res, next) => {
 router.get('/notes/:id', (req, res, next) => {
   const id = req.params.id;
   knex('notes')
-    .select('notes.id', 'title', 'content', 'folders.id as folder_id', 'folders.name as folderName')
+    .select('notes.id', 'title', 'content', 'folders.id as folder_id', 'folders.name as folderName', 'tags.id as tagId', 'tags.name as tagName')
     .leftJoin('folders','notes.folder_id', 'folders.id')
+    .leftJoin('notes_tags','notes.id','notes_tags.notes_id')
+    .leftJoin('tags', 'notes_tags.tags_id','tags.id')
     .where('notes.id', id)
-    .then(item=> {
+    .then(item => {
       if(item.length === 0){
         res.status(404);
         next();
       }
-      res.json(item[0]);})
+
+      const result = hydrate(item);
+      res.json(result[0]);})
     .catch(err => next(err));
 });
 
@@ -107,9 +111,9 @@ router.put('/notes/:id', (req, res, next) => {
 
 // Post (insert) an item
 router.post('/notes', (req, res, next) => {
-  const { title, content, folder_id} = req.body;
+  const { title, content, folder_id, tags} = req.body;
 
-  const newItem = { title, content , folder_id };
+  const newItem = { title, content , folder_id};
   /***** Never trust users - validate input *****/
   if (!newItem.title) {
     const err = new Error('Missing `title` in request body');
@@ -122,14 +126,35 @@ router.post('/notes', (req, res, next) => {
   knex('notes')
     .insert(newItem)
     .returning('id')
-    .then(([id])=>{
+    .then(([id])=> {
       noteId = id;
+      const tagsToInsert = tags.map(tagId => {
+        return {
+          notes_id : noteId,
+          tags_id : tagId
+        };
+      });
+      return knex('notes_tags')
+        .insert(tagsToInsert);
+    })
+    .then(()=>{
+
       return knex('notes')
-        .select('notes.id', 'title', 'content', 'folder_id', 'folders.name as folder_name')
+        .select('notes.id', 'title', 'content', 'folders.id as folder_id', 'folders.name as folderName', 'tags.id as tagId', 'tags.name as tagName')
         .leftJoin('folders', 'notes.folder_id', 'folders.id')
+        .leftJoin('notes_tags', 'notes_tags.notes_id', 'notes.id')
+        .leftJoin('tags','notes_tags.tags_id','tags.id')
         .where('notes.id', noteId);
     })
-    .then(([result]) => {res.location(`http://${req.headers.host}/notes/${result.id}`).status(201).json(result);})
+    .then((results) => {
+      if(results) {
+        const result = hydrate(results);
+        res.location(`http://${req.headers.host}/notes/${result.id}`).status(201).json(result);
+      }
+      else {
+        next();
+      }
+    })
     .catch(err=> next(err));
 });
 
