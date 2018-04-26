@@ -77,13 +77,13 @@ router.put('/notes/:id', (req, res, next) => {
 
 
   knex('notes')
-    .update(updateObj)
-    .where('notes.id',id)
+    .update(updateObj) // UPDATE notes SET updateObj WHERE notes.id = id RETURNING id <-- id of the record that was updated
+    .where('notes.id',id) //returning avoids having to make an additional SELECT query
     .returning('id')
     .then(([id]) => {
 
       return knex('notes')
-        .select('notes.id', 'title', 'content', 'folder_id', 'folders.name as folder_name')
+        .select('notes.id', 'title', 'content', 'folder_id', 'folders.name as folder_name') //SELECT
         .leftJoin('folders', 'notes.folder_id', 'folders.id')
         .where ({'notes.id': id});
     })

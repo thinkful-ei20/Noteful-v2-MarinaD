@@ -47,3 +47,36 @@ INSERT INTO folders (name) VALUES
   ('Drafts'),
   ('Personal'),
   ('Work');
+
+  DROP TABLE IF EXISTS tags;
+
+  CREATE TABLE tags (
+    id serial PRIMARY KEY,
+    name text NOT NULL
+  );
+
+  INSERT INTO tags (name) VALUES 
+  ('Cool'),
+  ('Uncool'),
+  ('DoubleUncool'),
+  ('Wow');
+
+  DROP TABLE IF EXISTS notes_tags;
+
+  CREATE TABLE notes_tags (
+    notes_id INTEGER NOT NULL REFERENCES notes ON DELETE CASCADE,
+    tags_id INTEGER NOT NULL REFERENCES tags ON DELETE CASCADE
+  );
+
+  INSERT INTO notes_tags (notes_id, tags_id) VALUES
+  (1001, 1),
+  (1001, 2),
+  (1001, 3),
+  (1002, 1),
+  (1003, 2),
+  (1009, 3);
+
+  SELECT title, tags.name as TagName, folders.name as FolderName FROM notes
+  LEFT JOIN folders ON notes.folder_id = folders.id
+  LEFT JOIN notes_tags ON notes.id = notes_tags.notes_id
+  LEFT JOIN tags ON notes_tags.tags_id = tags.id;
