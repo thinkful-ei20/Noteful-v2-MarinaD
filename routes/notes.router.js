@@ -75,19 +75,14 @@ router.get('/notes/:id', (req, res, next) => {
 // Put update an item
 router.put('/notes/:id', (req, res, next) => {
   const id = req.params.id;
+  const {title, content, folderId, tags=[]} = req.body;
 
-  /***** Never trust users - validate input *****/
-  const updateObj = {};
-  const updateableFields = ['title', 'content', 'folder_id'];
-  const updatedTags = (req.body.tags) ? req.body.tags : null;
+  const updateObj = {
+    title,
+    content,
+    folder_id : (folderId) ? folderId : null
+  };
 
-  updateableFields.forEach(field => {
-    if (field in req.body) {
-      updateObj[field] = req.body[field];
-    }
-  });
-
-  /***** Never trust users - validate input *****/
   if (!updateObj.title) {
     const err = new Error('Missing `title` in request body');
     err.status = 400;
@@ -96,18 +91,16 @@ router.put('/notes/:id', (req, res, next) => {
 
 
   knex('notes')
-    .update(updateObj) // UPDATE notes SET updateObj WHERE notes.id = id RETURNING id <-- id of the record that was updated
-    .where('notes.id',id) //returning avoids having to make an additional SELECT query
+    .update(updateObj) 
+    .where('notes.id', id)
     .returning('id')
     .then(([id])=>{
       return knex('notes_tags')
         .where('notes_id', id) 
-        .del()
-        .returning(id);
-
+        .del();
     })
     .then(()=> {
-      const tagsToInsert = updatedTags.map(tagId => {
+      const tagsToInsert = tags.map(tagId => {
         return {
           notes_id : id,
           tags_id : tagId
@@ -127,19 +120,21 @@ router.put('/notes/:id', (req, res, next) => {
     })
     .then(item => {
       if (item){
-        const result = hydrate(item);
+        const [result] = hydrate(item);
         res.json(result);
       }
-      next();
+      else {
+        next();
+      }
     })
     .catch(err => next(err));
 });
 
 // Post (insert) an item
 router.post('/notes', (req, res, next) => {
-  const { title, content, folder_id, tags} = req.body;
-
+  const { title, content, folder_id, tags = []} = req.body;
   const newItem = { title, content , folder_id};
+
   /***** Never trust users - validate input *****/
   if (!newItem.title) {
     const err = new Error('Missing `title` in request body');
@@ -174,7 +169,7 @@ router.post('/notes', (req, res, next) => {
     })
     .then((results) => {
       if(results) {
-        const result = hydrate(results);
+        const [result] = hydrate(results);
         res.location(`http://${req.headers.host}/notes/${result.id}`).status(201).json(result);
       }
       else {

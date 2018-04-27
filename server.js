@@ -40,6 +40,7 @@ app.use(function (req, res, next) {
 // Catch-all Error handler
 // Add NODE_ENV check to prevent stacktrace leak
 app.use(function (err, req, res, next) {
+  console.log(err);
   res.status(err.status || 500);
   res.json({
     message: err.message,
@@ -48,8 +49,12 @@ app.use(function (err, req, res, next) {
 });
 
 // Listen for incoming connections
-app.listen(PORT, function () {
-  console.info(`Server listening on ${this.address().port}`);
-}).on('error', err => {
-  console.error(err);
-});
+if (require.main === module){
+  app.listen(PORT, function () {
+    console.info(`Server listening on ${this.address().port}`);
+  }).on('error', err => {
+    console.error(err);
+  });
+}
+
+module.exports = app;
